@@ -1,6 +1,0 @@
-make --dry-run --keep-going --print-directory
-make: Entering directory '/home/thalesdarini/testCodes05/Redes/Redes-IRC'
-gcc tcp_server.c -o tcp_server
-gcc tcp_client.c -o tcp_client
-make: Leaving directory '/home/thalesdarini/testCodes05/Redes/Redes-IRC'
- 
