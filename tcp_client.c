@@ -11,11 +11,6 @@ int main(void)
 {
     int socket_desc;
     struct sockaddr_in server_addr;
-    char server_message[2000], client_message[2000];
-    
-    // Clean buffers:
-    memset(server_message,'\0',sizeof(server_message));
-    memset(client_message,'\0',sizeof(client_message));
     
     // Create socket:
     socket_desc = socket(AF_INET, SOCK_STREAM, 0);
@@ -40,6 +35,15 @@ int main(void)
     }
     printf("Connected with server successfully\n");
     
+
+    /******************************/
+    // ALTERAR ESSA PARTE DAS MENSAGENS PARA A ENTREGA
+    char server_message[2000], client_message[2000];
+    
+    // Clean buffers:
+    memset(server_message,'\0',sizeof(server_message));
+    memset(client_message,'\0',sizeof(client_message));
+
     // Get input from the user:
     printf("Enter message: ");
     fgets(client_message, 4096, stdin);
@@ -57,7 +61,11 @@ int main(void)
     }
     
     printf("Server's response: %s\n",server_message);
-    
+    /******************************/
+
+
+
+
     // Close the socket:
     close(socket_desc);
     
