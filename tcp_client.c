@@ -5,7 +5,7 @@
 #include <arpa/inet.h>
 
 #define PORT 60001
-#define SERVER_IP "172.19.137.154"
+#define SERVER_IP "172.21.29.63"
 
 int main(void)
 {

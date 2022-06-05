@@ -5,7 +5,7 @@
 #include <arpa/inet.h>
 
 #define PORT 60001
-#define SERVER_IP "172.19.137.154"
+//#define SERVER_IP "172.19.137.154"
 
 int main(void)
 {
@@ -30,7 +30,8 @@ int main(void)
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT);
     //server_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); //localhost only
-    server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
+    //server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server_addr.sin_addr.s_addr = INADDR_ANY; //bind to all interfaces
 
     // Bind to the set port and IP:
     if(bind(socket_desc, (struct sockaddr*)&server_addr, sizeof(server_addr))<0){
