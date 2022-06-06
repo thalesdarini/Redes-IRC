@@ -55,7 +55,7 @@ int main(void)
 
     /******************************/
     // ALTERAR ESSA PARTE DAS MENSAGENS PARA A ENTREGA
-    char server_message[2000], client_message[2000];
+    char server_message[4096], client_message[4096];
     
     // Clean buffers:
     memset(server_message, '\0', sizeof(server_message));
