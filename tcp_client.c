@@ -38,7 +38,7 @@ int main(void)
 
     /******************************/
     // ALTERAR ESSA PARTE DAS MENSAGENS PARA A ENTREGA
-    char server_message[4096], client_message[4096];
+    char server_message[2000], client_message[2000];
     
     // Clean buffers:
     memset(server_message,'\0',sizeof(server_message));
@@ -46,7 +46,6 @@ int main(void)
 
     // Get input from the user:
     printf("Enter message: ");
-    
     fgets(client_message, 4096, stdin);
     
     // Send the message to server:
