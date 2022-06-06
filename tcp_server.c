@@ -55,7 +55,7 @@ int main(void)
 
     /******************************/
     // ALTERAR ESSA PARTE DAS MENSAGENS PARA A ENTREGA
-    char server_message[2000], client_message[2000];
+    char server_message[4096], client_message[4096];
     
     // Clean buffers:
     memset(server_message, '\0', sizeof(server_message));
@@ -68,8 +68,10 @@ int main(void)
     }
     printf("Msg from client: %s\n", client_message);
     
+    
     // Respond to client:
-    strcpy(server_message, "This is the server's message.");
+    printf("Enter message: ");
+    fgets(server_message, 4096, stdin);
     
     if (send(client_sock, server_message, strlen(server_message), 0) < 0){
         printf("Can't send\n");
