@@ -3,9 +3,22 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <time.h>
+#include <stdlib.h>
 
 #define PORT 60001
 //#define SERVER_IP "172.19.137.154"
+
+void delay(int milliseconds){
+    long pause;
+    clock_t now,then;
+
+    pause = milliseconds*(CLOCKS_PER_SEC/1000);
+    now = then = clock();
+    while( (now-then) < pause )
+        now = clock();
+}
+
 
 int main(void)
 {
@@ -53,31 +66,81 @@ int main(void)
     printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
     
 
-    /******************************/
-    // ALTERAR ESSA PARTE DAS MENSAGENS PARA A ENTREGA
-    char server_message[4096], client_message[4096];
-    
-    // Clean buffers:
-    memset(server_message, '\0', sizeof(server_message));
-    memset(client_message, '\0', sizeof(client_message));
+    char sent_message[100000], recv_message[4097], parc_message[4097];
 
-    // Receive client's message:
-    if (recv(client_sock, client_message, sizeof(client_message), 0) < 0){
-        printf("Couldn't receive\n");
-        return -1;
+    while (1){
+        // Clean buffers:
+        memset(sent_message, '\0', sizeof(sent_message));
+
+        int tam_message;
+        // Receive client's message size:
+        if (recv(client_sock, &tam_message, sizeof(tam_message), 0) < 0){
+            printf("Couldn't receive\n");
+            return -1;
+        }
+
+        // Receive client's message:
+        int ok;
+        printf("Msg from client:\n");
+        for (int i = 0; i < tam_message; i++){
+            memset(recv_message, '\0', sizeof(recv_message));
+            if (recv(client_sock, recv_message, sizeof(recv_message), 0) < 0){
+                printf("Couldn't receive\n");
+                return -1;
+            }
+            
+            printf("%s", recv_message);
+
+            //send confirmation to receive another msg
+            if (send(client_sock, &ok, sizeof(ok), 0) < 0){
+                printf("Error while sending confirmation\n");
+                return -1;
+            }
+
+        }
+        printf("\n");
+
+        if (strcmp("\\quit\n", recv_message) == 0)
+            break;
+
+        // Respond to client:
+        printf("Enter message: ");
+        fgets(sent_message, 100000, stdin);
+        tam_message = (strlen(sent_message)/4096) + 1;
+
+        int exit = 0;
+        if (strcmp("\\quit\n", sent_message) == 0)
+            exit = 1;
+
+        //send message size
+        if (send(client_sock, &tam_message, sizeof(tam_message), 0) < 0){
+            printf("Can't send\n");
+            return -1;
+        }
+
+        ok=0;
+        for (int i = 0; i < tam_message; i++){
+            memset(parc_message,'\0',sizeof(parc_message));
+            strncpy(parc_message,sent_message+(i*4096), 4096);
+            if(send(client_sock, parc_message, strlen(parc_message), 0) < 0){
+                printf("Unable to send message\n");
+                return -1;
+            } 
+
+
+            //confirm if another msg can be sent
+            if(recv(client_sock, &ok, sizeof(ok), 0) < 0){
+                printf("Error while receiving server's confirmation\n");
+                return -1;
+            } 
+
+        }
+        printf("\n");
+
+        if (exit)
+            break;
     }
-    printf("Msg from client: %s\n", client_message);
-    
-    
-    // Respond to client:
-    printf("Enter message: ");
-    fgets(server_message, 4096, stdin);
-    
-    if (send(client_sock, server_message, strlen(server_message), 0) < 0){
-        printf("Can't send\n");
-        return -1;
-    }
-    /******************************/
+
     
 
 
