@@ -108,7 +108,7 @@ int main(void)
     tam_message = (strlen(sent_message)/4096) + 1;
     
     //send message size
-    if (send(client_sock, tam_message, sizeof(tam_message), 0) < 0){
+    if (send(client_sock, &tam_message, sizeof(tam_message), 0) < 0){
         printf("Can't send\n");
         return -1;
     }
