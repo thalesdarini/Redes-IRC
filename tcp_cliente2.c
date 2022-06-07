@@ -67,7 +67,7 @@ int main(void){
         if(send(socket_desc, parc_message, strlen(parc_message), 0) < 0){
             printf("Unable to send message\n");
             return -1;
-        } 
+        }
 
         //confirm if another msg can be sent
         if(recv(socket_desc, &ok, sizeof(ok), 0) < 0){

@@ -12,4 +12,4 @@ run-client:
 run-client2:
 	./tcp_client2
 clear:
-	@rm tcp_server tcp_client
+	@rm tcp_server tcp_client tcp_client2 tcp_server2
