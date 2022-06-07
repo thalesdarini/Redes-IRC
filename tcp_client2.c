@@ -60,12 +60,15 @@ int main(void){
 
     //Send message to server
     int ok = 1;
+    printf("Msg enviada:\n");
     for (int i = 0; i < tam_message; i++){
         memset(parc_message,'\0',sizeof(parc_message));
         strncpy(parc_message,sent_message+(i*4096), 4096);
         if(send(socket_desc, parc_message, strlen(parc_message), 0) < 0){
             printf("Unable to send message\n");
             return -1;
+        } else {
+            printf("%s", parc_message);
         }
 
         //confirm if another msg can be sent
@@ -75,10 +78,11 @@ int main(void){
         } 
 
     }
+    printf("\n");
     
         
     // Receive the server's response:
-    if(recv(socket_desc, recv_message, sizeof(recv_message), 0) < 0){
+    if(recv(socket_desc, &tam_message, sizeof(tam_message), 0) < 0){
         printf("Error while receiving server's msg\n");
         return -1;
     }
@@ -91,7 +95,7 @@ int main(void){
             printf("Couldn't receive\n");
             return -1;
         }
-        printf("%s\n\n", recv_message);
+        printf("%s", recv_message);
 
         //send confirmation to receive another msg
         if (send(socket_desc, &ok, sizeof(ok), 0) < 0){

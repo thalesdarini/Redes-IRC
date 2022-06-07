@@ -89,7 +89,7 @@ int main(void)
             printf("Couldn't receive\n");
             return -1;
         }
-        printf("%s\n\n", recv_message);
+        printf("%s", recv_message);
 
         //send confirmation to receive another msg
         if (send(client_sock, &ok, sizeof(ok), 0) < 0){
@@ -113,6 +113,7 @@ int main(void)
     }
 
     ok=0;
+    printf("Msg enviada:\n");
     for (int i = 0; i < tam_message; i++){
         memset(parc_message,'\0',sizeof(parc_message));
         strncpy(parc_message,sent_message+(i*4096), 4096);
@@ -121,6 +122,8 @@ int main(void)
             return -1;
         } 
 
+        printf("%s", parc_message);
+
         //confirm if another msg can be sent
         if(recv(client_sock, &ok, sizeof(ok), 0) < 0){
             printf("Error while receiving server's confirmation\n");
@@ -128,6 +131,7 @@ int main(void)
         } 
 
     }
+    printf("\n");
 
     /******************************/
     
