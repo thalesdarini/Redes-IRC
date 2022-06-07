@@ -84,7 +84,24 @@ int main(void){
         return -1;
     }
         
-    printf("Server's response: %s\n",recv_message);
+    printf("Server's response:\n");
+
+    for (int i = 0; i < tam_message; i++){
+
+        if (recv(socket_desc, recv_message, sizeof(recv_message), 0) < 0){
+            printf("Couldn't receive\n");
+            return -1;
+        }
+        printf("%s\n\n", recv_message);
+
+        //send confirmation to receive another msg
+        if (send(socket_desc, &ok, sizeof(ok), 0) < 0){
+            printf("Error while sending confirmation\n");
+            return -1;
+        }
+
+    }
+    printf("\n");
     /******************************/
 
 
