@@ -68,11 +68,10 @@ int main(void)
 
     /******************************/
     // ALTERAR ESSA PARTE DAS MENSAGENS PARA A ENTREGA
-    char sent_message[100000], recv_message[100000], parc_message[4097];
+    char sent_message[100000], recv_message[4097], parc_message[4097];
     
     // Clean buffers:
     memset(sent_message, '\0', sizeof(sent_message));
-    memset(recv_message, '\0', sizeof(recv_message));
 
     int tam_message;
     // Receive client's message size:
@@ -85,7 +84,7 @@ int main(void)
     int ok;
     printf("Msg from client:\n");
     for (int i = 0; i < tam_message; i++){
-        
+        memset(recv_message, '\0', sizeof(recv_message));
         if (recv(client_sock, recv_message, sizeof(recv_message), 0) < 0){
             printf("Couldn't receive\n");
             return -1;

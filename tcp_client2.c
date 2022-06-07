@@ -41,10 +41,9 @@ int main(void){
 
     /******************************/
     // ALTERAR ESSA PARTE DAS MENSAGENS PARA A ENTREGA
-    char recv_message[100000], sent_message[100000], parc_message[4097];
+    char recv_message[4097], sent_message[100000], parc_message[4097];
     
     // Clean buffers:
-    memset(recv_message,'\0',sizeof(recv_message));
     memset(sent_message,'\0',sizeof(sent_message));
     
     // Get input from the user:
@@ -87,7 +86,7 @@ int main(void){
     printf("Server's response:\n");
 
     for (int i = 0; i < tam_message; i++){
-
+        memset(recv_message,'\0',sizeof(recv_message));
         if (recv(socket_desc, recv_message, sizeof(recv_message), 0) < 0){
             printf("Couldn't receive\n");
             return -1;
