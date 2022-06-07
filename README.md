@@ -2,8 +2,11 @@
 Amanda Lindoso Figueiredo			10784306
 Thales Darini Souza				10747562
 Marcus Vinícius Teixeira Huziwara 		11834432
+
 Linux: WSL2 Ubuntu 20.04
+
 Compilador: gcc
+
 Comandos: 
 > make all -> compilar códigos
 > make run-server -> rodar código do server
