@@ -14,4 +14,4 @@ Comandos:
 
 > make run-client -> rodar código do cliente
 
-> para encerrar a comunição entre os dois usuário é necessário que um deles digite o comando /quit quando for sua vez de enviar a mensagem
+> para encerrar a comunição entre os dois usuário é necessário que um deles digite o comando \quit quando for sua vez de enviar a mensagem
