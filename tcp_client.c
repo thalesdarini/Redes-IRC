@@ -41,6 +41,7 @@ int main(void){
 
     char recv_message[4097], sent_message[100000], parc_message[4097];
     
+    //loop for continuos communication
     while (1){
         // Clean buffers:
         memset(sent_message,'\0',sizeof(sent_message));
@@ -50,8 +51,9 @@ int main(void){
         fgets(sent_message, 100000, stdin);
         int tam_message = (strlen(sent_message)/4096) + 1;
 
-        int exit = 0;
-        if (strcmp("\\quit\n", sent_message) == 0){
+        int exit = 0; //indicate if one of the user wants to end the connection 
+
+        if (strcmp("\\quit\n", sent_message) == 0){ //verify if the client typed "/quit"
             exit = 1;
         }
 
@@ -61,7 +63,7 @@ int main(void){
             return -1;
         }
 
-        //Send message to server
+        //Send each part of message to server
         int ok = 1;
         for (int i = 0; i < tam_message; i++){
             memset(parc_message,'\0',sizeof(parc_message));
@@ -80,17 +82,18 @@ int main(void){
         }
         printf("\n");
 
-        if (exit)
+        if (exit) //if the user wants to end the communication => close socket
             break;
 
-        // Receive the server's response:
+        // Receive the server's message size:
         if(recv(socket_desc, &tam_message, sizeof(tam_message), 0) < 0){
             printf("Error while receiving server's msg\n");
             return -1;
         }
 
-        printf("Server's response:\n");
+        printf("Server's message:\n");
 
+        //Receive each part of server's message
         for (int i = 0; i < tam_message; i++){
             memset(recv_message,'\0',sizeof(recv_message));
             if (recv(socket_desc, recv_message, sizeof(recv_message), 0) < 0){
@@ -108,11 +111,10 @@ int main(void){
         }
         printf("\n");
 
-        if (strcmp("\\quit\n", recv_message) == 0)
+        if (strcmp("\\quit\n", recv_message) == 0) //verify if server wants to end communication
             break;
     }
     
-
 
     // Close the socket:
     close(socket_desc);

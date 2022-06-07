@@ -9,16 +9,6 @@
 #define PORT 60001
 //#define SERVER_IP "172.19.137.154"
 
-void delay(int milliseconds){
-    long pause;
-    clock_t now,then;
-
-    pause = milliseconds*(CLOCKS_PER_SEC/1000);
-    now = then = clock();
-    while( (now-then) < pause )
-        now = clock();
-}
-
 
 int main(void)
 {
@@ -46,7 +36,7 @@ int main(void)
         printf("Couldn't bind to the port\n");
         return -1;
     }
-    printf("Done with binding\n");
+    printf("Done with binding\n"); 
     
     // Listen for clients:
     if(listen(socket_desc, 1) < 0){
@@ -66,20 +56,21 @@ int main(void)
     printf("Client connected at IP: %s and port: %i\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
     
 
-    char sent_message[100000], recv_message[4097], parc_message[4097];
+    char sent_message[100000], recv_message[4097], parc_message[4097]; 
 
+    //loop for continuos communication
     while (1){
         // Clean buffers:
         memset(sent_message, '\0', sizeof(sent_message));
 
         int tam_message;
-        // Receive client's message size:
+        // Receive client's message size (number of parts the msg was divided):
         if (recv(client_sock, &tam_message, sizeof(tam_message), 0) < 0){
             printf("Couldn't receive\n");
             return -1;
         }
 
-        // Receive client's message:
+        // Receive each part client's message:
         int ok;
         printf("Msg from client:\n");
         for (int i = 0; i < tam_message; i++){
@@ -88,10 +79,10 @@ int main(void)
                 printf("Couldn't receive\n");
                 return -1;
             }
-            
+            //print part of the message
             printf("%s", recv_message);
 
-            //send confirmation to receive another msg
+            //send confirmation to receive another part of the msg
             if (send(client_sock, &ok, sizeof(ok), 0) < 0){
                 printf("Error while sending confirmation\n");
                 return -1;
@@ -100,7 +91,7 @@ int main(void)
         }
         printf("\n");
 
-        if (strcmp("\\quit\n", recv_message) == 0)
+        if (strcmp("\\quit\n", recv_message) == 0) //verify if client wants to end socket
             break;
 
         // Respond to client:
@@ -109,16 +100,17 @@ int main(void)
         tam_message = (strlen(sent_message)/4096) + 1;
 
         int exit = 0;
-        if (strcmp("\\quit\n", sent_message) == 0)
+        if (strcmp("\\quit\n", sent_message) == 0) //verify if the server wants to end communication
             exit = 1;
 
-        //send message size
+        //send message size(number of parts the msg was divided)
         if (send(client_sock, &tam_message, sizeof(tam_message), 0) < 0){
             printf("Can't send\n");
             return -1;
         }
 
         ok=0;
+        //sent each part of the msg
         for (int i = 0; i < tam_message; i++){
             memset(parc_message,'\0',sizeof(parc_message));
             strncpy(parc_message,sent_message+(i*4096), 4096);
@@ -128,7 +120,7 @@ int main(void)
             } 
 
 
-            //confirm if another msg can be sent
+            //confirm if another part of the msg can be sent
             if(recv(client_sock, &ok, sizeof(ok), 0) < 0){
                 printf("Error while receiving server's confirmation\n");
                 return -1;
@@ -137,14 +129,11 @@ int main(void)
         }
         printf("\n");
 
-        if (exit)
+        if (exit) //if the server wants to end communication => close socket
             break;
     }
 
     
-
-
-
 
     // Closing the socket:
     close(client_sock);
