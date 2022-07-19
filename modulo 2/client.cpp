@@ -75,17 +75,9 @@ int main()
 
 			if(t_send.joinable()){
 				t_send.join();
-				cout << "estive aq no join\n";
-			}
-			else {
-				cout << "estive aq no de fora do join\n";
 			}
 			if(t_recv.joinable()){
-				cout << "estive aq no outro join\n";
 				t_recv.join();
-			}
-			else {
-				cout << "estive aq no outro de fora do join\n";
 			}
 			
 		} 
@@ -141,7 +133,9 @@ void send_message(int client_socket)
 	{
 		cout<<colors[1]<<"You : "<<def_col;
 		string str;
-		cin >> str;
+		//cin >> str;
+		cin >> ws;
+		getline(cin, str);
 		send(client_socket,str.c_str(),str.length() + 1,0);
 		if(strcmp(str.c_str(),"/quit")==0)
 		{
