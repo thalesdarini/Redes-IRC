@@ -71,7 +71,7 @@ int main(void)
         }
 
         // Receive each part client's message:
-        int ok;
+        int ok = 0;
         printf("Msg from client:\n");
         for (int i = 0; i < tam_message; i++){
             memset(recv_message, '\0', sizeof(recv_message));

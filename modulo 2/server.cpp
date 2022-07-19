@@ -21,12 +21,14 @@ struct terminal
 	thread th;
 };
 
+//int server_socket;
 vector<terminal> clients;
 string def_col="\033[0m";
 string colors[]={"\033[31m", "\033[32m", "\033[33m", "\033[34m", "\033[35m","\033[36m"};
 int seed=0;
 mutex cout_mtx,clients_mtx;
 
+//void catch_ctrl_c(int signal);
 string color(int code);
 void set_name(int id, char name[]);
 void shared_print(string str, bool endLine = true);
@@ -66,6 +68,7 @@ int main()
 	int client_socket;
 	unsigned int len=sizeof(sockaddr_in);
 
+	//signal(SIGINT, catch_ctrl_c);
 	cout<<colors[NUM_COLORS-1]<<"\n\t  ====== Welcome to the chat-room ======   "<<endl<<def_col;
 
 	while(1)
@@ -87,19 +90,30 @@ int main()
 				(move(t))
 			}
 		);
-
-		/*for(int i=0; i<clients.size(); i++)
-		{
-			if(clients[i].id == seed && clients[i].th.joinable()){
-				cout << "to aq no outro laço" << endl;
-				//clients[i].th.join();
-			}
-		}*/
 	}
+
+	/*
+	for(int i=0; i<clients.size(); i++)
+	{
+		clients[i].th.detach();
+		shutdown(clients[i].socket, SHUT_RDWR);
+		close(clients[i].socket);
+	}
+	*/
 
 	close(server_socket);
 	return 0;
 }
+
+/*
+// Handler for "Ctrl + C"
+void catch_ctrl_c(int signal) 
+{
+	cout << "Closing server and terminating program..." << endl;
+	close(server_socket);
+
+	//exit(signal);
+}*/
 
 string color(int code)
 {
@@ -183,7 +197,7 @@ void end_connection(int id)
 	lock_guard<mutex> guard(clients_mtx);
 	for(int i=0; i<clients.size(); i++)
 	{
-		if(clients[i].id==id)	
+		if(clients[i].id==id)
 		{
 			clients[i].th.detach();
 			close(clients[i].socket);
@@ -209,8 +223,11 @@ void handle_client(int client_socket, int id)
 	while(1)
 	{
 		int bytes_received=recv(client_socket,str,sizeof(str),0);
-		if(bytes_received<=0)
+		if(bytes_received<=0){
+			cout << "returning thread on client " << to_string(id) << endl;
+			
 			return;
+		}
 		if(strcmp(str,"/quit")==0)
 		{
 			// Display leaving message

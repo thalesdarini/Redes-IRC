@@ -30,11 +30,13 @@ int main()
 {	
 	string command;
 	while(1){
-		
-		cout << "Digite o comando:" << endl;
+
+		signal(SIGINT, SIG_IGN);
+		cout << endl << "Digite um dos comandos abaixo:" << endl;
+		cout << "/connect	conecta ao servidor" << endl;
+		cout << "/exit		fecha a aplicação" << endl << endl;
 		cin >> command;
 		cin.clear();
-
 
 		if(command == "/connect"){
 
@@ -43,25 +45,25 @@ int main()
 				perror("socket: ");
 				exit(-1);
 			}
-
+			
 			struct sockaddr_in client;
 			client.sin_family=AF_INET;
 			client.sin_port=htons(10000); // Port no. of server
 			client.sin_addr.s_addr=INADDR_ANY;
 			//client.sin_addr.s_addr=inet_addr("127.0.0.1"); // Provide IP address of server
-			bzero(&client.sin_zero,0);
+			//bzero(&client.sin_zero,0);
 
 			if((connect(client_socket,(struct sockaddr *)&client,sizeof(struct sockaddr_in)))==-1)
 			{
 				perror("connect: ");
 				exit(-1);
 			}
-			signal(SIGINT, catch_ctrl_c);
-			char name[MAX_LEN];
+			string name;
 			cout<<"Enter your name : ";
 			cin >> name;
-			send(client_socket,name,sizeof(name),0);
+			send(client_socket,name.c_str(),name.length() + 1,0);
 
+			signal(SIGINT, catch_ctrl_c);
 			cout<<colors[NUM_COLORS-1]<<"\n\t  ====== Welcome to the chat-room ======   "<<endl<<def_col;
 
 			exit_flag = false;
@@ -87,6 +89,12 @@ int main()
 			}
 			
 		} 
+		else if (command == "/exit"){
+			break;
+		}
+		else{
+			cout << "Comando inválido" << endl;
+		}
 		
 	}
 			
@@ -96,13 +104,17 @@ int main()
 // Handler for "Ctrl + C"
 void catch_ctrl_c(int signal) 
 {
-	char str[MAX_LEN]="/quit";
+	/*char str[MAX_LEN]="/quit";
 	send(client_socket,str,sizeof(str),0);
 	exit_flag=true;
 	t_send.detach();
 	t_recv.detach();
 	close(client_socket);
-	exit(signal);
+	exit(signal);*/
+	eraseText(8);
+	cout << "To end connection, type '/quit'" << endl;
+	cout<<colors[1]<<"You : "<<def_col;
+	fflush(stdout);
 }
 
 string color(int code)
@@ -128,10 +140,10 @@ void send_message(int client_socket)
 	while(1)
 	{
 		cout<<colors[1]<<"You : "<<def_col;
-		char str[MAX_LEN];
+		string str;
 		cin >> str;
-		send(client_socket,str,sizeof(str),0);
-		if(strcmp(str,"/quit")==0)
+		send(client_socket,str.c_str(),str.length() + 1,0);
+		if(strcmp(str.c_str(),"/quit")==0)
 		{
 				exit_flag=true;
 				t_recv.detach();	
@@ -152,11 +164,12 @@ void recv_message(int client_socket)
 		char name[MAX_LEN], str[MAX_LEN];
 		int color_code;
 		int bytes_received=recv(client_socket,name,sizeof(name),0);
-		if(bytes_received<=0)
+		if(bytes_received<=0){
 			continue;
+		}
 		eraseText(6);
 		if(strcmp(name,"#PONG")==0){
-			cout<<"pong"<<endl;
+			cout<<"pong   "<<endl;
 		}
 		else{
 			recv(client_socket,&color_code,sizeof(color_code),0);
