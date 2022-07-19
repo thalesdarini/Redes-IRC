@@ -29,7 +29,7 @@ mutex cout_mtx,clients_mtx;
 
 string color(int code);
 void set_name(int id, char name[]);
-void shared_print(string str, bool endLine);
+void shared_print(string str, bool endLine = true);
 int broadcast_message(string message, int sender_id);
 int broadcast_message(int num, int sender_id);
 void end_connection(int id);
@@ -77,14 +77,24 @@ int main()
 		}
 		seed++;
 		thread t(handle_client,client_socket,seed);
-		lock_guard<mutex> guard(clients_mtx);
-		clients.push_back({seed, string("Anonymous"),client_socket,(move(t))});
-	}
 
-	for(int i=0; i<clients.size(); i++)
-	{
-		if(clients[i].th.joinable())
-			clients[i].th.join();
+		lock_guard<mutex> guard(clients_mtx);
+		clients.push_back(
+			{
+				seed, 
+				string("Anonymous"),
+				client_socket,
+				(move(t))
+			}
+		);
+
+		/*for(int i=0; i<clients.size(); i++)
+		{
+			if(clients[i].id == seed && clients[i].th.joinable()){
+				cout << "to aq no outro laço" << endl;
+				//clients[i].th.join();
+			}
+		}*/
 	}
 
 	close(server_socket);
@@ -99,6 +109,7 @@ string color(int code)
 // Set name of client
 void set_name(int id, char name[])
 {
+	lock_guard<mutex> guard(clients_mtx);
 	for(int i=0; i<clients.size(); i++)
 	{
 			if(clients[i].id==id)	
@@ -109,17 +120,18 @@ void set_name(int id, char name[])
 }
 
 // For synchronisation of cout statements
-void shared_print(string str, bool endLine=true)
+void shared_print(string str, bool endLine)
 {	
 	lock_guard<mutex> guard(cout_mtx);
 	cout<<str;
 	if(endLine)
-			cout<<endl;
+		cout<<endl;
 }
 
 // Broadcast message to all clients except the sender
 int broadcast_message(string message, int sender_id)
 {
+	lock_guard<mutex> guard(clients_mtx);
 	char temp[MAX_LEN];
 	strcpy(temp,message.c_str());
 	for(int i=0; i<clients.size(); i++)
@@ -128,31 +140,54 @@ int broadcast_message(string message, int sender_id)
 		{
 			send(clients[i].socket,temp,sizeof(temp),0);
 		}
-	}		
+	}	
+
+	return 0;	
+}
+
+// Send message to a single client
+int send_message(string message, int sender_id)
+{
+	lock_guard<mutex> guard(clients_mtx);
+	char temp[MAX_LEN];
+	strcpy(temp,message.c_str());
+	for(int i=0; i<clients.size(); i++)
+	{
+		if(clients[i].id==sender_id)
+		{
+			send(clients[i].socket,temp,sizeof(temp),0);
+		}
+	}	
+
+	return 0;	
 }
 
 // Broadcast a number to all clients except the sender
 int broadcast_message(int num, int sender_id)
 {
+	lock_guard<mutex> guard(clients_mtx);
 	for(int i=0; i<clients.size(); i++)
 	{
 		if(clients[i].id!=sender_id)
 		{
+			shared_print("client that received " + to_string(clients[i].id), true);
 			send(clients[i].socket,&num,sizeof(num),0);
 		}
-	}		
+	}	
+
+	return 0;	
 }
 
 void end_connection(int id)
 {
+	lock_guard<mutex> guard(clients_mtx);
 	for(int i=0; i<clients.size(); i++)
 	{
 		if(clients[i].id==id)	
 		{
-			lock_guard<mutex> guard(clients_mtx);
 			clients[i].th.detach();
-			clients.erase(clients.begin()+i);
 			close(clients[i].socket);
+			clients.erase(clients.begin()+i);
 			break;
 		}
 	}				
@@ -165,7 +200,7 @@ void handle_client(int client_socket, int id)
 	set_name(id,name);	
 
 	// Display welcome message
-	string welcome_message=string(name)+string(" has joined");
+	string welcome_message=string(name)+string(" has joined com id ") + to_string(id);
 	broadcast_message("#NULL",id);	
 	broadcast_message(id,id);								
 	broadcast_message(welcome_message,id);	
@@ -176,7 +211,7 @@ void handle_client(int client_socket, int id)
 		int bytes_received=recv(client_socket,str,sizeof(str),0);
 		if(bytes_received<=0)
 			return;
-		if(strcmp(str,"#exit")==0)
+		if(strcmp(str,"/quit")==0)
 		{
 			// Display leaving message
 			string message=string(name)+string(" has left");		
@@ -187,9 +222,16 @@ void handle_client(int client_socket, int id)
 			end_connection(id);							
 			return;
 		}
-		broadcast_message(string(name),id);					
-		broadcast_message(id,id);		
-		broadcast_message(string(str),id);
-		shared_print(color(id)+name+" : "+def_col+str);		
+		if (strcmp(str, "/ping") == 0)
+		{
+			send_message("#PONG", id);
+		}
+		else {
+			broadcast_message(string(name),id);					
+			broadcast_message(id,id);		
+			broadcast_message(string(str),id);
+			shared_print(color(id)+name+" : "+def_col+str);	
+		}
+			
 	}	
 }

@@ -64,16 +64,27 @@ int main()
 
 			cout<<colors[NUM_COLORS-1]<<"\n\t  ====== Welcome to the chat-room ======   "<<endl<<def_col;
 
+			exit_flag = false;
 			thread t1(send_message, client_socket);
 			thread t2(recv_message, client_socket);
 
 			t_send=move(t1);
 			t_recv=move(t2);
 
-			if(t_send.joinable())
+			if(t_send.joinable()){
 				t_send.join();
-			if(t_recv.joinable())
+				cout << "estive aq no join\n";
+			}
+			else {
+				cout << "estive aq no de fora do join\n";
+			}
+			if(t_recv.joinable()){
+				cout << "estive aq no outro join\n";
 				t_recv.join();
+			}
+			else {
+				cout << "estive aq no outro de fora do join\n";
+			}
 			
 		} 
 		
@@ -85,7 +96,7 @@ int main()
 // Handler for "Ctrl + C"
 void catch_ctrl_c(int signal) 
 {
-	char str[MAX_LEN]="#exit";
+	char str[MAX_LEN]="/quit";
 	send(client_socket,str,sizeof(str),0);
 	exit_flag=true;
 	t_send.detach();
@@ -107,6 +118,8 @@ int eraseText(int cnt)
 	{
 		cout<<back_space;
 	}	
+
+	return 0;
 }
 
 // Send message to everyone
@@ -141,13 +154,18 @@ void recv_message(int client_socket)
 		int bytes_received=recv(client_socket,name,sizeof(name),0);
 		if(bytes_received<=0)
 			continue;
-		recv(client_socket,&color_code,sizeof(color_code),0);
-		recv(client_socket,str,sizeof(str),0);
 		eraseText(6);
-		if(strcmp(name,"#NULL")!=0)
-			cout<<color(color_code)<<name<<" : "<<def_col<<str<<endl;
-		else
-			cout<<color(color_code)<<str<<endl;
+		if(strcmp(name,"#PONG")==0){
+			cout<<"pong"<<endl;
+		}
+		else{
+			recv(client_socket,&color_code,sizeof(color_code),0);
+			recv(client_socket,str,sizeof(str),0);
+			if(strcmp(name,"#NULL")!=0)
+				cout<<color(color_code)<<name<<" : "<<def_col<<str<<endl;
+			else
+				cout<<color(color_code)<<str<<endl;
+		}
 		cout<<colors[1]<<"You : "<<def_col;
 		fflush(stdout);
 	}	
