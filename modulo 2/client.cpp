@@ -58,10 +58,13 @@ int main()
 				perror("connect: ");
 				exit(-1);
 			}
-			string name;
+			
 			cout<<"Enter your name : ";
+			char name[MAX_LEN];
+			memset(name, '\0', sizeof(name));
 			cin >> name;
-			send(client_socket,name.c_str(),name.length() + 1,0);
+
+			send(client_socket,name,sizeof(name),0);
 
 			signal(SIGINT, catch_ctrl_c);
 			cout<<colors[NUM_COLORS-1]<<"\n\t  ====== Welcome to the chat-room ======   "<<endl<<def_col;
@@ -121,14 +124,15 @@ void send_message(int client_socket)
 	while(1)
 	{
 		cout<<colors[1]<<"You : "<<def_col;
-		string str;
+		char str[MAX_LEN];
+		memset(str, '\0', sizeof(str));
 		cin >> ws;
-		getline(cin, str);
+		cin.getline(str, MAX_LEN);
 		if(exit_flag)
 			return;
-		int bytes_sent = send(client_socket,str.c_str(),str.length() + 1, MSG_NOSIGNAL);
-		if(bytes_sent == -1 || strcmp(str.c_str(),"/quit")==0){
-			cout << "Connection to server was closed" << endl;
+		int bytes_sent = send(client_socket,str,sizeof(str), MSG_NOSIGNAL);
+		if(bytes_sent == -1 || strcmp(str,"/quit")==0){
+			cout << "\33[2K\rConnection to server was closed" << endl;
 			if (exit_flag == false){
 				exit_flag=true;
 				shutdown(client_socket, SHUT_RDWR);
@@ -158,7 +162,7 @@ void recv_message(int client_socket)
 		int color_code;
 		int bytes_received=recv(client_socket,name,sizeof(name),0);
 		if(bytes_received<=0){
-			cout << "Connection to server was closed" << endl;
+			cout << "\33[2K\rConnection to server was closed" << endl;
 			if (exit_flag == false){
 				cout << "Type something to exit" << endl;
 				exit_flag=true;
@@ -184,4 +188,3 @@ void recv_message(int client_socket)
 		fflush(stdout);
 	}	
 }
-

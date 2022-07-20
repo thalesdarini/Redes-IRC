@@ -27,7 +27,6 @@ vector<terminal> clients;
 string def_col="\033[0m";
 string colors[]={"\033[31m", "\033[32m", "\033[33m", "\033[34m", "\033[35m","\033[36m"};
 int seed=0;
-int ok=0;
 mutex cout_mtx,clients_mtx;
 
 void catch_ctrl_c(int signal);
@@ -169,11 +168,15 @@ void shared_print(string str, bool endLine)
 int broadcast_message(string message, int sender_id, string channel)
 {
 	lock_guard<mutex> guard(clients_mtx);
+	char temp[MAX_LEN];
+	memset(temp, '\0', sizeof(temp));
+	strcpy(temp, message.c_str());
 	for(int i=0; i<clients.size(); i++)
 	{
 		if(clients[i].id!=sender_id && channel.compare(clients[i].channel)==0)
 		{
-			send(clients[i].socket,message.c_str(),message.length()+1,0);
+			//send(clients[i].socket, message.c_str(), message.length() + 1, 0);
+			send(clients[i].socket, temp, sizeof(temp), 0);
 		}
 	}	
 
@@ -184,11 +187,15 @@ int broadcast_message(string message, int sender_id, string channel)
 int send_message(string message, int sender_id)
 {
 	lock_guard<mutex> guard(clients_mtx);
+	char temp[MAX_LEN];
+	memset(temp, '\0', sizeof(temp));
+	strcpy(temp, message.c_str());
 	for(int i=0; i<clients.size(); i++)
 	{
 		if(clients[i].id==sender_id)
 		{
-			send(clients[i].socket,message.c_str(),message.length() + 1,0);
+			//send(clients[i].socket,message.c_str(),message.length() + 1, 0);
+			send(clients[i].socket,temp,sizeof(temp), 0);
 		}
 	}	
 
@@ -203,7 +210,6 @@ int broadcast_message(int num, int sender_id, string channel)
 	{
 		if(clients[i].id!=sender_id && channel.compare(clients[i].channel)==0)
 		{
-			shared_print("client that received: " + to_string(clients[i].id), true);
 			send(clients[i].socket,&num,sizeof(num),0);
 		}
 	}	
@@ -231,7 +237,6 @@ void handle_client(int client_socket, int id)
 	char name[MAX_LEN],str[MAX_LEN], channel[MAX_LEN];
 	recv(client_socket,name,sizeof(name),0);
 	set_name(id,name);	
-	send(client_socket,&ok,sizeof(ok),0);
 	recv(client_socket,channel,sizeof(channel),0);
 	set_channel(id,channel);
 
@@ -246,8 +251,6 @@ void handle_client(int client_socket, int id)
 	{
 		int bytes_received=recv(client_socket,str,sizeof(str),0);
 		if(bytes_received<=0){
-			cout << "returning thread on client " << to_string(id) << endl;
-			
 			return;
 		}
 		if(strcmp(str,"/quit")==0)

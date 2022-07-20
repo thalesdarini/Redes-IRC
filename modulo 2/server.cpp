@@ -153,11 +153,15 @@ void shared_print(string str, bool endLine)
 int broadcast_message(string message, int sender_id)
 {
 	lock_guard<mutex> guard(clients_mtx);
+	char temp[MAX_LEN];
+	memset(temp, '\0', sizeof(temp));
+	strcpy(temp, message.c_str());
 	for(int i=0; i<clients.size(); i++)
 	{
 		if(clients[i].id!=sender_id)
 		{
-			send(clients[i].socket,message.c_str(),message.length() + 1,0);
+			//send(clients[i].socket, message.c_str(), message.length() + 1, 0);
+			send(clients[i].socket, temp, sizeof(temp), 0);
 		}
 	}	
 
@@ -168,11 +172,15 @@ int broadcast_message(string message, int sender_id)
 int send_message(string message, int sender_id)
 {
 	lock_guard<mutex> guard(clients_mtx);
+	char temp[MAX_LEN];
+	memset(temp, '\0', sizeof(temp));
+	strcpy(temp, message.c_str());
 	for(int i=0; i<clients.size(); i++)
 	{
 		if(clients[i].id==sender_id)
 		{
-			send(clients[i].socket,message.c_str(),message.length() + 1,0);
+			//send(clients[i].socket,message.c_str(),message.length() + 1, 0);
+			send(clients[i].socket,temp,sizeof(temp), 0);
 		}
 	}	
 
@@ -187,8 +195,7 @@ int broadcast_message(int num, int sender_id)
 	{
 		if(clients[i].id!=sender_id)
 		{
-			shared_print("client that received: " + to_string(clients[i].id), true);
-			send(clients[i].socket,&num,sizeof(num),0);
+			send(clients[i].socket,&num,sizeof(num), 0);
 		}
 	}	
 
