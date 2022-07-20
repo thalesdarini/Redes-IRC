@@ -22,7 +22,7 @@ string colors[]={"\033[31m", "\033[32m", "\033[33m", "\033[34m", "\033[35m", "\0
 
 void catch_ctrl_c(int signal);
 string color(int code);
-int eraseText(int cnt);
+int eraseTerminalLine();
 void send_message(int client_socket);
 void recv_message(int client_socket);
 
@@ -103,7 +103,7 @@ void catch_ctrl_c(int signal)
 	t_recv.detach();
 	close(client_socket);
 	exit(signal);*/
-	eraseText(8);
+	eraseTerminalLine();
 	cout << "To end connection, type '/quit'" << endl;
 	cout<<colors[1]<<"You : "<<def_col;
 	fflush(stdout);
@@ -114,14 +114,10 @@ string color(int code)
 	return colors[code%NUM_COLORS];
 }
 
-// Erase text from terminal
-int eraseText(int cnt)
+// Erase last line from terminal
+int eraseTerminalLine()
 {
-	char back_space=8;
-	for(int i=0; i<cnt; i++)
-	{
-		cout<<back_space;
-	}	
+	cout << "\33[2K\r";
 
 	return 0;
 }
@@ -161,9 +157,9 @@ void recv_message(int client_socket)
 		if(bytes_received<=0){
 			continue;
 		}
-		eraseText(6);
+		eraseTerminalLine();
 		if(strcmp(name,"#PONG")==0){
-			cout<<"pong   "<<endl;
+			cout<<"pong!"<<endl;
 		}
 		else{
 			recv(client_socket,&color_code,sizeof(color_code),0);
