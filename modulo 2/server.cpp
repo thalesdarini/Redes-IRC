@@ -153,10 +153,6 @@ void shared_print(string str, bool endLine)
 int broadcast_message(string message, int sender_id)
 {
 	lock_guard<mutex> guard(clients_mtx);
-	//cout << "message being sent: " << message << endl; 
-	//char temp[MAX_LEN];
-	//memset(temp, 0, MAX_LEN);
-	//strcpy(temp,message.c_str());
 	for(int i=0; i<clients.size(); i++)
 	{
 		if(clients[i].id!=sender_id)
@@ -172,8 +168,6 @@ int broadcast_message(string message, int sender_id)
 int send_message(string message, int sender_id)
 {
 	lock_guard<mutex> guard(clients_mtx);
-	//char temp[MAX_LEN];
-	//strcpy(temp,message.c_str());
 	for(int i=0; i<clients.size(); i++)
 	{
 		if(clients[i].id==sender_id)

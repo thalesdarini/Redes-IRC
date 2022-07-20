@@ -136,18 +136,28 @@ void send_message(int client_socket)
 	{
 		cout<<colors[1]<<"You : "<<def_col;
 		string str;
-		//cin >> str;
 		cin >> ws;
 		getline(cin, str);
-		send(client_socket,str.c_str(),str.length() + 1,0);
-		if(strcmp(str.c_str(),"/quit")==0)
-		{
+		if(exit_flag)
+			return;
+		int bytes_sent = send(client_socket,str.c_str(),str.length() + 1, MSG_NOSIGNAL);
+		if(bytes_sent == -1 || strcmp(str.c_str(),"/quit")==0){
+			cout << "Connection to server was closed" << endl;
+			if (exit_flag == false){
 				exit_flag=true;
-				t_recv.detach();	
+				shutdown(client_socket, SHUT_RDWR);
+
+				// wait for connection to be properly closed before closing socket
+				bool try_connection = true;
+				while (try_connection) {
+					char test[10];
+					int i = recv(client_socket,test,sizeof(test),0);
+					if (i <= 0) try_connection = false;
+				}
 				close(client_socket);
-				return;
-		}	
-		
+			}
+			return;
+		}
 	}		
 }
 
@@ -162,7 +172,15 @@ void recv_message(int client_socket)
 		int color_code;
 		int bytes_received=recv(client_socket,name,sizeof(name),0);
 		if(bytes_received<=0){
-			continue;
+			cout << "Connection to server was closed" << endl;
+			if (exit_flag == false){
+				cout << "Type something to exit" << endl;
+				exit_flag=true;
+				shutdown(client_socket, SHUT_RDWR);
+
+				close(client_socket);
+			}
+			return;
 		}
 		eraseTerminalLine();
 		if(strcmp(name,"#PONG")==0){

@@ -22,7 +22,7 @@ struct terminal
 	thread th;
 };
 
-//int server_socket;
+int server_socket;
 vector<terminal> clients;
 string def_col="\033[0m";
 string colors[]={"\033[31m", "\033[32m", "\033[33m", "\033[34m", "\033[35m","\033[36m"};
@@ -30,7 +30,7 @@ int seed=0;
 int ok=0;
 mutex cout_mtx,clients_mtx;
 
-//void catch_ctrl_c(int signal);
+void catch_ctrl_c(int signal);
 string color(int code);
 void set_name(int id, char name[]);
 void shared_print(string str, bool endLine = true);
@@ -41,7 +41,6 @@ void handle_client(int client_socket, int id);
 
 int main()
 {
-	int server_socket;
 	if((server_socket=socket(AF_INET,SOCK_STREAM,0))==-1)
 	{
 		perror("socket: ");
@@ -70,15 +69,16 @@ int main()
 	int client_socket;
 	unsigned int len=sizeof(sockaddr_in);
 
-	//signal(SIGINT, catch_ctrl_c);
+	signal(SIGINT, catch_ctrl_c);
 	cout<<colors[NUM_COLORS-1]<<"\n\t  ====== Welcome to the chat-room ======   "<<endl<<def_col;
 
 	while(1)
 	{
 		if((client_socket=accept(server_socket,(struct sockaddr *)&client,&len))==-1)
 		{
-			perror("accept error: ");
-			exit(-1);
+			//perror("accept error: ");
+			cout << "Stopped accepting new connections" << endl;
+			break;
 		}
 		seed++;
 		thread t(handle_client,client_socket,seed);
@@ -95,28 +95,35 @@ int main()
 		);
 	}
 
-	/*
+	// Joins threads
+	lock_guard<mutex> guard(clients_mtx);
 	for(int i=0; i<clients.size(); i++)
 	{
-		clients[i].th.detach();
-		shutdown(clients[i].socket, SHUT_RDWR);
-		close(clients[i].socket);
+		if (clients[i].th.joinable())
+			clients[i].th.join();
 	}
-	*/
 
-	close(server_socket);
+	if (server_socket != -1) 
+		close(server_socket);
+
 	return 0;
 }
 
-/*
+
 // Handler for "Ctrl + C"
 void catch_ctrl_c(int signal) 
 {
-	cout << "Closing server and terminating program..." << endl;
-	close(server_socket);
+	cout << "\33[2K\rClosing server and terminating program..." << endl;
+	lock_guard<mutex> guard(clients_mtx);
+	for(int i=0; i<clients.size(); i++)
+	{
+		shutdown(clients[i].socket, SHUT_RDWR);
+		close(clients[i].socket);
+	}
 
-	//exit(signal);
-}*/
+	close(server_socket);
+	server_socket = -1;
+}
 
 string color(int code)
 {
@@ -177,13 +184,11 @@ int broadcast_message(string message, int sender_id, string channel)
 int send_message(string message, int sender_id)
 {
 	lock_guard<mutex> guard(clients_mtx);
-	char temp[MAX_LEN];
-	strcpy(temp,message.c_str());
 	for(int i=0; i<clients.size(); i++)
 	{
 		if(clients[i].id==sender_id)
 		{
-			send(clients[i].socket,temp,sizeof(temp),0);
+			send(clients[i].socket,message.c_str(),message.length() + 1,0);
 		}
 	}	
 
@@ -232,7 +237,7 @@ void handle_client(int client_socket, int id)
 
 	// Display welcome message
 	string welcome_message=string(name)+string(" has joined com id ") + to_string(id);
-	broadcast_message("#NULL",id, string(channel));	
+	broadcast_message(string("#NULL"),id, string(channel));	
 	broadcast_message(id,id, string(channel));								
 	broadcast_message(welcome_message,id, string(channel));	
 	shared_print(color(id)+welcome_message+def_col);
@@ -249,7 +254,7 @@ void handle_client(int client_socket, int id)
 		{
 			// Display leaving message
 			string message=string(name)+string(" has left");		
-			broadcast_message("#NULL",id, string(channel));			
+			broadcast_message(string("#NULL"),id, string(channel));			
 			broadcast_message(id,id, string(channel));						
 			broadcast_message(message,id, string(channel));
 			shared_print(color(id)+message+def_col);
@@ -258,7 +263,7 @@ void handle_client(int client_socket, int id)
 		}
 		if (strcmp(str, "/ping") == 0)
 		{
-			send_message("#PONG", id);
+			send_message(string("#PONG"), id);
 		}
 		else {
 			broadcast_message(string(name),id,string(channel));					

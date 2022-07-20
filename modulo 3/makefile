@@ -1,6 +1,9 @@
 all:
 	g++ server.cpp -o server -lpthread
 	g++ client.cpp -o client -lpthread
+valgrind:
+	g++ server.cpp -o server -lpthread -g
+	g++ client.cpp -o client -lpthread -g
 run-server:
 	stty -icanon
 	./server
