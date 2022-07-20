@@ -34,8 +34,8 @@ mutex cout_mtx,clients_mtx;
 string color(int code);
 void set_name(int id, char name[]);
 void shared_print(string str, bool endLine = true);
-int broadcast_message(string message, int sender_id);
-int broadcast_message(int num, int sender_id);
+int broadcast_message(string message, int sender_id, string channel);
+int broadcast_message(int num, int sender_id, string channel);
 void end_connection(int id);
 void handle_client(int client_socket, int id);
 
@@ -159,16 +159,14 @@ void shared_print(string str, bool endLine)
 }
 
 // Broadcast message to all clients except the sender
-int broadcast_message(string message, int sender_id)
+int broadcast_message(string message, int sender_id, string channel)
 {
 	lock_guard<mutex> guard(clients_mtx);
-	char temp[MAX_LEN];
-	strcpy(temp,message.c_str());
 	for(int i=0; i<clients.size(); i++)
 	{
-		if(clients[i].id!=sender_id)
+		if(clients[i].id!=sender_id && channel.compare(clients[i].channel)==0)
 		{
-			send(clients[i].socket,temp,sizeof(temp),0);
+			send(clients[i].socket,message.c_str(),message.length()+1,0);
 		}
 	}	
 
@@ -193,12 +191,12 @@ int send_message(string message, int sender_id)
 }
 
 // Broadcast a number to all clients except the sender
-int broadcast_message(int num, int sender_id)
+int broadcast_message(int num, int sender_id, string channel)
 {
 	lock_guard<mutex> guard(clients_mtx);
 	for(int i=0; i<clients.size(); i++)
 	{
-		if(clients[i].id!=sender_id)
+		if(clients[i].id!=sender_id && channel.compare(clients[i].channel)==0)
 		{
 			shared_print("client that received: " + to_string(clients[i].id), true);
 			send(clients[i].socket,&num,sizeof(num),0);
@@ -234,9 +232,9 @@ void handle_client(int client_socket, int id)
 
 	// Display welcome message
 	string welcome_message=string(name)+string(" has joined com id ") + to_string(id);
-	broadcast_message("#NULL",id);	
-	broadcast_message(id,id);								
-	broadcast_message(welcome_message,id);	
+	broadcast_message("#NULL",id, string(channel));	
+	broadcast_message(id,id, string(channel));								
+	broadcast_message(welcome_message,id, string(channel));	
 	shared_print(color(id)+welcome_message+def_col);
 	
 	while(1)
@@ -251,9 +249,9 @@ void handle_client(int client_socket, int id)
 		{
 			// Display leaving message
 			string message=string(name)+string(" has left");		
-			broadcast_message("#NULL",id);			
-			broadcast_message(id,id);						
-			broadcast_message(message,id);
+			broadcast_message("#NULL",id, string(channel));			
+			broadcast_message(id,id, string(channel));						
+			broadcast_message(message,id, string(channel));
 			shared_print(color(id)+message+def_col);
 			end_connection(id);							
 			return;
@@ -263,9 +261,9 @@ void handle_client(int client_socket, int id)
 			send_message("#PONG", id);
 		}
 		else {
-			broadcast_message(string(name),id);					
-			broadcast_message(id,id);		
-			broadcast_message(string(str),id);
+			broadcast_message(string(name),id,string(channel));					
+			broadcast_message(id,id, string(channel));		
+			broadcast_message(string(str),id, string(channel));
 			shared_print(color(id)+name+" : "+def_col+str);	
 		}
 			
