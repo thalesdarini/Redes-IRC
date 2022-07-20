@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <thread>
 #include <mutex>
-#define MAX_LEN 200
+#define MAX_LEN 4096
 #define NUM_COLORS 6
 
 using namespace std;
