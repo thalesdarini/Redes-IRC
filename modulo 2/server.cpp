@@ -184,7 +184,7 @@ int broadcast_message(int num, int sender_id)
 	{
 		if(clients[i].id!=sender_id)
 		{
-			shared_print("client that received " + to_string(clients[i].id), true);
+			shared_print("client that received: " + to_string(clients[i].id), true);
 			send(clients[i].socket,&num,sizeof(num),0);
 		}
 	}	
