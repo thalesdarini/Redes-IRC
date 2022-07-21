@@ -9,7 +9,7 @@
 #include <thread>
 #include <signal.h>
 #include <mutex>
-#define MAX_LEN 4096
+#define MAX_LEN 60
 #define NUM_COLORS 6
 
 using namespace std;
@@ -108,13 +108,6 @@ int main()
 // Handler for "Ctrl + C"
 void catch_ctrl_c(int signal) 
 {
-	/*char str[MAX_LEN]="/quit";
-	send(client_socket,str,sizeof(str),0);
-	exit_flag=true;
-	t_send.detach();
-	t_recv.detach();
-	close(client_socket);
-	exit(signal);*/
 	eraseTerminalLine();
 	cout << "To end connection, type '/quit'" << endl;
 	cout<<colors[1]<<"You : "<<def_col;
@@ -134,35 +127,67 @@ int eraseTerminalLine()
 	return 0;
 }
 
+void end_connection(int client_socket) {
+	if (exit_flag == false){
+		exit_flag=true;
+		shutdown(client_socket, SHUT_RDWR);
+
+		// wait for connection to be properly closed before closing socket
+		bool try_connection = true;
+		while (try_connection) {
+			char test[10];
+			int i = recv(client_socket,test,sizeof(test),0);
+			if (i <= 0) try_connection = false;
+		}
+		close(client_socket);
+	}
+}
+
 // Send message to everyone
 void send_message(int client_socket)
 {
 	while(1)
 	{
 		cout<<colors[1]<<"You : "<<def_col;
+
+		// read full message
+		string full_message;
+		cin >> ws; // ignore whitespaces
+		getline(cin, full_message);
+
+		// in case this flag is set, the function returns after you type something
+		if(exit_flag) 
+			return;
+		
+		// get how much the message has to be divided to fit the char limit
+		int max_len_minus = MAX_LEN-1;
+		int tam_message = (full_message.length()%max_len_minus == 0) 
+			? full_message.length()/max_len_minus
+			: full_message.length()/max_len_minus + 1;
+		cout << "tam da msg: " << tam_message << endl;
+
+		// send message count
+		int bytes_sent;
+		bytes_sent = send(client_socket, &tam_message , sizeof(tam_message), 0);
+		if (bytes_sent == -1) {
+			cout << "\33[2K\rConnection to server was lost" << endl;
+			end_connection(client_socket);
+			return;
+		}
+
+		
+		// send each message
 		char str[MAX_LEN];
 		memset(str, '\0', sizeof(str));
-		cin >> ws;
-		cin.getline(str, MAX_LEN);
-		if(exit_flag)
-			return;
-		int bytes_sent = send(client_socket,str,sizeof(str), MSG_NOSIGNAL);
-		if(bytes_sent == -1 || strcmp(str,"/quit")==0){
-			cout << "\33[2K\rConnection to server was closed" << endl;
-			if (exit_flag == false){
-				exit_flag=true;
-				shutdown(client_socket, SHUT_RDWR);
-
-				// wait for connection to be properly closed before closing socket
-				bool try_connection = true;
-				while (try_connection) {
-					char test[10];
-					int i = recv(client_socket,test,sizeof(test),0);
-					if (i <= 0) try_connection = false;
-				}
-				close(client_socket);
+		for (int i = 0; i < tam_message; i++){
+			strncpy(str, full_message.c_str()+(i*max_len_minus), max_len_minus);
+			
+			int bytes_sent = send(client_socket,str,sizeof(str), MSG_NOSIGNAL);
+			if(bytes_sent == -1 || strcmp(str,"/quit")==0){
+				cout << "\33[2K\rConnection to server was closed" << endl;
+				end_connection(client_socket);
+				return;
 			}
-			return;
 		}
 	}		
 }
@@ -179,26 +204,30 @@ void recv_message(int client_socket)
 		int bytes_received=recv(client_socket,name,sizeof(name),0);
 		if(bytes_received<=0){
 			cout << "\33[2K\rConnection to server was closed" << endl;
-			if (exit_flag == false){
-				cout << "Type something to exit" << endl;
-				exit_flag=true;
-				shutdown(client_socket, SHUT_RDWR);
-
-				close(client_socket);
-			}
+			cout << "Type something to exit" << endl;
+			end_connection(client_socket);
 			return;
 		}
 		eraseTerminalLine();
 		if(strcmp(name,"#PONG")==0){
 			cout<<"pong!"<<endl;
 		}
-		else{
+		else if(strcmp(name,"#NULL")==0) {
 			recv(client_socket,&color_code,sizeof(color_code),0);
 			recv(client_socket,str,sizeof(str),0);
-			if(strcmp(name,"#NULL")!=0)
-				cout<<color(color_code)<<name<<" : "<<def_col<<str<<endl;
-			else
-				cout<<color(color_code)<<str<<endl;
+			cout<<color(color_code)<<str<<endl;
+		}
+		else{ // it is a message
+			recv(client_socket,&color_code,sizeof(color_code),0);
+			int tam_message;
+			recv(client_socket,&tam_message,sizeof(tam_message),0);
+
+			cout<<color(color_code)<<name<<" : ";
+			for (int i = 0; i < tam_message; i++) {
+				recv(client_socket,str,sizeof(str),0);
+				cout<<def_col<<str;
+			}
+			cout << endl;
 		}
 		cout<<colors[1]<<"You : "<<def_col;
 		fflush(stdout);

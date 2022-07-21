@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <thread>
 #include <mutex>
-#define MAX_LEN 4096
+#define MAX_LEN 60
 #define NUM_COLORS 6
 
 using namespace std;
@@ -249,7 +249,12 @@ void handle_client(int client_socket, int id)
 	
 	while(1)
 	{
-		int bytes_received=recv(client_socket,str,sizeof(str),0);
+		int tam_message;
+		int bytes_received=recv(client_socket,&tam_message,sizeof(tam_message),0);
+		if(bytes_received<=0){
+			return;
+		}
+		bytes_received=recv(client_socket,str,sizeof(str),0);
 		if(bytes_received<=0){
 			return;
 		}
@@ -270,9 +275,21 @@ void handle_client(int client_socket, int id)
 		}
 		else {
 			broadcast_message(string(name),id,string(channel));					
-			broadcast_message(id,id, string(channel));		
+			broadcast_message(id,id, string(channel));	
+			broadcast_message(tam_message,id, string(channel));
+
+			shared_print(color(id)+name+" : "+def_col+str, (tam_message == 1));	
 			broadcast_message(string(str),id, string(channel));
-			shared_print(color(id)+name+" : "+def_col+str);	
+
+			while (--tam_message > 0) {
+				bytes_received=recv(client_socket,str,sizeof(str),0);
+				if(bytes_received<=0){
+					return;
+				}
+				shared_print(str, (tam_message == 1));	
+				broadcast_message(string(str),id, string(channel));
+			}
+			
 		}
 			
 	}	
