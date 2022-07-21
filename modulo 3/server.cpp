@@ -18,6 +18,9 @@ struct terminal
 	int id;
 	string name;
 	string channel;
+	string ip;
+	bool mute;
+	bool admin;
 	int socket;
 	thread th;
 };
@@ -27,15 +30,23 @@ vector<terminal> clients;
 string def_col="\033[0m";
 string colors[]={"\033[31m", "\033[32m", "\033[33m", "\033[34m", "\033[35m","\033[36m"};
 int seed=0;
+bool mut=false, adm=false;
 mutex cout_mtx,clients_mtx;
 
+struct sockaddr_in client;
 void catch_ctrl_c(int signal);
 string color(int code);
 void set_name(int id, char name[]);
+void set_channel(int id, char channel[]);
 void shared_print(string str, bool endLine = true);
 int broadcast_message(string message, int sender_id, string channel);
+int send_message(string message, int sender_id);
 int broadcast_message(int num, int sender_id, string channel);
 void end_connection(int id);
+void kick(string name, string channel);
+void mute(string name, string channel);
+void unmute(string name, string channel);
+void whois(string name, int id, string channel);
 void handle_client(int client_socket, int id);
 
 int main()
@@ -64,7 +75,6 @@ int main()
 		exit(-1);
 	}
 
-	struct sockaddr_in client;
 	int client_socket;
 	unsigned int len=sizeof(sockaddr_in);
 
@@ -88,6 +98,9 @@ int main()
 				seed, 
 				string("Anonymous"),
 				string("Anyone"),
+				string("ip"),
+				mut,
+				adm,
 				client_socket,
 				(move(t))
 			}
@@ -131,13 +144,17 @@ string color(int code)
 
 // Set name of client
 void set_name(int id, char name[])
-{
+{	
+	char str[50];
+	inet_ntop(AF_INET,&client.sin_addr.s_addr, str, sizeof(str));
 	lock_guard<mutex> guard(clients_mtx);
 	for(int i=0; i<clients.size(); i++)
 	{
 			if(clients[i].id==id)	
 			{
 				clients[i].name=string(name);
+				clients[i].mute = false;
+				clients[i].ip = string(str);
 				
 			}
 	}	
@@ -146,13 +163,25 @@ void set_name(int id, char name[])
 void set_channel(int id, char channel[])
 {
 	lock_guard<mutex> guard(clients_mtx);
+	bool admin = true; 
+	int novo;
+	string Channel = string(channel);
+	
 	for(int i=0; i<clients.size(); i++)
 	{
 			if(clients[i].id==id)	
 			{
-				clients[i].channel=string(channel);
+				clients[i].channel=Channel;
+				novo = i;
 			}
-	}	
+
+			if(clients[i].id!=id && Channel.compare(clients[i].channel)==0)
+			{
+				admin = false;
+			}
+	}
+
+	clients[novo].admin = admin;	
 }
 
 // For synchronisation of cout statements
@@ -232,6 +261,62 @@ void end_connection(int id)
 	}				
 }
 
+void kick(string name, string channel)
+{
+	lock_guard<mutex> guard(clients_mtx);
+	for(int i=0; i<clients.size(); i++)
+	{
+		if(channel.compare(clients[i].channel)==0 && clients[i].name.compare(name)==0)
+		{
+			clients[i].th.detach();
+			close(clients[i].socket);
+			clients.erase(clients.begin()+i);
+			break;
+		}
+	}				
+}
+
+void mute(string name, string channel)
+{
+	lock_guard<mutex> guard(clients_mtx);
+	for(int i=0; i<clients.size(); i++)
+	{
+		if(channel.compare(clients[i].channel)==0 && clients[i].name.compare(name)==0)
+		{
+			clients[i].mute = true;
+			break;
+		}
+	}	
+
+}
+
+void unmute(string name, string channel)
+{
+	lock_guard<mutex> guard(clients_mtx);
+	for(int i=0; i<clients.size(); i++)
+	{
+		if(channel.compare(clients[i].channel)==0 && clients[i].name.compare(name)==0)
+		{
+			clients[i].mute = false;
+			break;
+		}
+	}	
+
+}
+
+void whois(string name, int id, string channel)
+{
+	lock_guard<mutex> guard(clients_mtx);
+	for(int i=0; i<clients.size(); i++)
+	{
+		if(channel.compare(clients[i].channel)==0 && clients[i].name.compare(name)==0)
+		{
+			send_message(string("#IP"), id);
+			break;
+		}
+	}	
+}
+
 void handle_client(int client_socket, int id)
 {
 	char name[MAX_LEN],str[MAX_LEN], channel[MAX_LEN];
@@ -239,6 +324,7 @@ void handle_client(int client_socket, int id)
 	set_name(id,name);	
 	recv(client_socket,channel,sizeof(channel),0);
 	set_channel(id,channel);
+
 
 	// Display welcome message
 	string welcome_message=string(name)+string(" has joined com id ") + to_string(id);
@@ -255,6 +341,7 @@ void handle_client(int client_socket, int id)
 			return;
 		}
 		bytes_received=recv(client_socket,str,sizeof(str),0);
+		string comp = string(str);
 		if(bytes_received<=0){
 			return;
 		}
@@ -269,28 +356,46 @@ void handle_client(int client_socket, int id)
 			end_connection(id);							
 			return;
 		}
+		if(clients[id-1].admin == true){
+			if(comp.length() >=6 && comp.substr(0,5).compare("/kick")==0 ){
+				kick(comp.substr(6), string(channel));
+				continue;
+			}
+			else if(comp.length() >=6 && comp.substr(0,5).compare("/mute")==0 ){
+				mute(comp.substr(6), string(channel));
+				continue;
+			}
+			else if(comp.length() >=8 && comp.substr(0,7).compare("/unmute")==0){
+				unmute(comp.substr(8), string(channel));
+				continue;
+			}
+			else if(comp.length() >=7 && comp.substr(0,6).compare("/whois")==0){
+				whois(comp.substr(7), id, string(channel));
+				continue;
+			}
+		}
 		if (strcmp(str, "/ping") == 0)
 		{
 			send_message(string("#PONG"), id);
 		}
 		else {
-			broadcast_message(string(name),id,string(channel));					
-			broadcast_message(id,id, string(channel));	
-			broadcast_message(tam_message,id, string(channel));
+			if(clients[id-1].mute == false){
+				broadcast_message(string(name),id,string(channel));					
+				broadcast_message(id,id, string(channel));	
+				broadcast_message(tam_message,id, string(channel));
 
-			shared_print(color(id)+name+" : "+def_col+str, (tam_message == 1));	
-			broadcast_message(string(str),id, string(channel));
-
-			while (--tam_message > 0) {
-				bytes_received=recv(client_socket,str,sizeof(str),0);
-				if(bytes_received<=0){
-					return;
-				}
-				shared_print(str, (tam_message == 1));	
+				shared_print(color(id)+name+" : "+def_col+str, (tam_message == 1));	
 				broadcast_message(string(str),id, string(channel));
+
+				while (--tam_message > 0) {
+					bytes_received=recv(client_socket,str,sizeof(str),0);
+					if(bytes_received<=0){
+						return;
+					}
+					shared_print(str, (tam_message == 1));	
+					broadcast_message(string(str),id, string(channel));
+				}
 			}
-			
 		}
-			
 	}	
 }

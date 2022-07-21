@@ -212,6 +212,9 @@ void recv_message(int client_socket)
 		if(strcmp(name,"#PONG")==0){
 			cout<<"pong!"<<endl;
 		}
+		else if(strcmp(name, "#IP")==0){
+			cout<<"ip"<<endl;
+		}
 		else if(strcmp(name,"#NULL")==0) {
 			recv(client_socket,&color_code,sizeof(color_code),0);
 			recv(client_socket,str,sizeof(str),0);
