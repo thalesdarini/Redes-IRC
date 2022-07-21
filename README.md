@@ -18,4 +18,4 @@ Comandos:
 
 
 Link para o vídeo:
-https://drive.google.com/file/d/1Gp0raIf5MoBrNZyMM6k5mR6i5B5J_Idk/view?usp=sharing
+https://www.youtube.com/watch?v=Nzgrkc4OLYg
