@@ -38,15 +38,18 @@ void catch_ctrl_c(int signal);
 string color(int code);
 void set_name(int id, char name[]);
 void set_channel(int id, char channel[]);
+bool check_admin(int id);
+bool check_mute(int id);
+void make_new_adm(int sender_id, string channel);
 void shared_print(string str, bool endLine = true);
 int broadcast_message(string message, int sender_id, string channel);
 int send_message(string message, int sender_id);
 int broadcast_message(int num, int sender_id, string channel);
 void end_connection(int id);
-void kick(string name, string channel);
-void mute(string name, string channel);
-void unmute(string name, string channel);
-void whois(string name, int id, string channel);
+void kick(string name, int sender_id, string channel);
+void mute(string name, int sender_id, string channel);
+void unmute(string name, int sender_id, string channel);
+void whois(string name, int sender_id, string channel);
 void handle_client(int client_socket, int id);
 
 int main()
@@ -204,7 +207,6 @@ int broadcast_message(string message, int sender_id, string channel)
 	{
 		if(clients[i].id!=sender_id && channel.compare(clients[i].channel)==0)
 		{
-			//send(clients[i].socket, message.c_str(), message.length() + 1, 0);
 			send(clients[i].socket, temp, sizeof(temp), 0);
 		}
 	}	
@@ -223,7 +225,6 @@ int send_message(string message, int sender_id)
 	{
 		if(clients[i].id==sender_id)
 		{
-			//send(clients[i].socket,message.c_str(),message.length() + 1, 0);
 			send(clients[i].socket,temp,sizeof(temp), 0);
 		}
 	}	
@@ -246,6 +247,17 @@ int broadcast_message(int num, int sender_id, string channel)
 	return 0;	
 }
 
+void make_new_adm(int sender_id, string channel) {
+	for(int i=0; i<clients.size(); i++)
+	{
+		if (clients[i].id != sender_id && clients[i].channel.compare(channel) == 0 ) {
+			clients[i].admin = true;
+
+			break;
+		}
+	}
+}
+
 void end_connection(int id)
 {
 	lock_guard<mutex> guard(clients_mtx);
@@ -253,6 +265,8 @@ void end_connection(int id)
 	{
 		if(clients[i].id==id)
 		{
+			if (check_admin(clients[i].id))
+				make_new_adm(clients[i].id, clients[i].channel);
 			clients[i].th.detach();
 			close(clients[i].socket);
 			clients.erase(clients.begin()+i);
@@ -261,60 +275,136 @@ void end_connection(int id)
 	}				
 }
 
-void kick(string name, string channel)
+void kick(string name, int sender_id, string channel)
 {
-	lock_guard<mutex> guard(clients_mtx);
 	for(int i=0; i<clients.size(); i++)
 	{
 		if(channel.compare(clients[i].channel)==0 && clients[i].name.compare(name)==0)
 		{
+			if (check_admin(clients[i].id))
+				make_new_adm(clients[i].id, channel);
+
 			clients[i].th.detach();
+			shutdown(clients[i].socket, SHUT_RDWR);
 			close(clients[i].socket);
+
+			string message = clients[i].name + string(" has been kicked");		
+			broadcast_message(string("#NULL"), clients[i].id, string(channel));			
+			broadcast_message(clients[i].id, clients[i].id, string(channel));						
+			broadcast_message(message, clients[i].id, string(channel));
+			shared_print(color(clients[i].id)+message+def_col);
+
 			clients.erase(clients.begin()+i);
-			break;
+
+			return;
 		}
-	}				
+	}	
+
+	string message = string("user not found");
+	send_message(string("#ADM"), sender_id);
+	send_message(message, sender_id);			
 }
 
-void mute(string name, string channel)
+void mute(string name, int sender_id, string channel)
 {
-	lock_guard<mutex> guard(clients_mtx);
 	for(int i=0; i<clients.size(); i++)
 	{
 		if(channel.compare(clients[i].channel)==0 && clients[i].name.compare(name)==0)
 		{
-			clients[i].mute = true;
-			break;
+			if (clients[i].mute == false){
+				clients[i].mute = true;
+
+				string message=clients[i].name+string(" is now muted");		
+				broadcast_message(string("#NULL"), -1, channel);			
+				broadcast_message(clients[i].id, -1, channel);						
+				broadcast_message(message, -1, channel);
+				shared_print(color(clients[i].id)+message+def_col);
+			}
+			else {
+				string message = clients[i].name+string(" is already muted");
+				send_message(string("#ADM"), sender_id);
+				send_message(message, sender_id);
+			}
+
+			return;
 		}
 	}	
 
+	string message = string("user not found");
+	send_message(string("#ADM"), sender_id);
+	send_message(message, sender_id);
 }
 
-void unmute(string name, string channel)
+void unmute(string name, int sender_id, string channel)
 {
-	lock_guard<mutex> guard(clients_mtx);
 	for(int i=0; i<clients.size(); i++)
 	{
 		if(channel.compare(clients[i].channel)==0 && clients[i].name.compare(name)==0)
 		{
-			clients[i].mute = false;
-			break;
+			if (clients[i].mute == true){
+				clients[i].mute = false;
+
+				string message=clients[i].name+string(" can talk again");		
+				broadcast_message(string("#NULL"), -1, string(channel));			
+				broadcast_message(clients[i].id, -1, string(channel));						
+				broadcast_message(message, -1, string(channel));
+				shared_print(color(clients[i].id)+message+def_col);
+			}
+			else {
+				string message = clients[i].name+string(" is not muted");
+				send_message(string("#ADM"), sender_id);
+				send_message(message, sender_id);
+			}
+			
+
+			return;
 		}
 	}	
 
+	string message = string("user not found");
+	send_message(string("#ADM"), sender_id);
+	send_message(message, sender_id);
 }
 
-void whois(string name, int id, string channel)
+void whois(string name, int sender_id, string channel)
 {
-	lock_guard<mutex> guard(clients_mtx);
 	for(int i=0; i<clients.size(); i++)
 	{
 		if(channel.compare(clients[i].channel)==0 && clients[i].name.compare(name)==0)
 		{
-			send_message(string("#IP"), id);
-			break;
+			send_message(string("#IP"), sender_id);
+			send_message(clients[i].ip, sender_id);
+			return;
 		}
 	}	
+
+	string message = string("user not found");
+	send_message(string("#ADM"), sender_id);
+	send_message(message, sender_id);
+}
+
+bool check_admin(int id) {
+	for(int i=0; i<clients.size(); i++)
+	{
+		if(clients[i].id==id)
+		{
+			return clients[i].admin;
+		}
+	}
+
+	return false;
+}
+
+bool check_mute(int id) {
+	for(int i=0; i<clients.size(); i++)
+	{
+		if(clients[i].id==id)
+		{
+			return clients[i].mute;
+		}
+	}
+
+	return false;
 }
 
 void handle_client(int client_socket, int id)
@@ -356,46 +446,62 @@ void handle_client(int client_socket, int id)
 			end_connection(id);							
 			return;
 		}
-		if(clients[id-1].admin == true){
-			if(comp.length() >=6 && comp.substr(0,5).compare("/kick")==0 ){
-				kick(comp.substr(6), string(channel));
-				continue;
+		if(comp.length() >=6 && comp.substr(0,5).compare("/kick")==0 ){
+			if(check_admin(id)){
+				kick(comp.substr(6), id, string(channel));
 			}
-			else if(comp.length() >=6 && comp.substr(0,5).compare("/mute")==0 ){
-				mute(comp.substr(6), string(channel));
-				continue;
-			}
-			else if(comp.length() >=8 && comp.substr(0,7).compare("/unmute")==0){
-				unmute(comp.substr(8), string(channel));
-				continue;
-			}
-			else if(comp.length() >=7 && comp.substr(0,6).compare("/whois")==0){
-				whois(comp.substr(7), id, string(channel));
-				continue;
+			else {
+				send_message(string("#NOADM"), id);
 			}
 		}
-		if (strcmp(str, "/ping") == 0)
+		else if(comp.length() >=6 && comp.substr(0,5).compare("/mute")==0 ){
+			if(check_admin(id)){
+				mute(comp.substr(6), id, string(channel));
+			}
+			else {
+				send_message(string("#NOADM"), id);
+			}
+		}
+		else if(comp.length() >=8 && comp.substr(0,7).compare("/unmute")==0){
+			if(check_admin(id)){
+				unmute(comp.substr(8), id, string(channel));
+			}
+			else {
+				send_message(string("#NOADM"), id);
+			}
+		}
+		else if(comp.length() >=7 && comp.substr(0,6).compare("/whois")==0){
+			if(check_admin(id)){
+				whois(comp.substr(7), id, string(channel));
+			}
+			else {
+				send_message(string("#NOADM"), id);
+			}
+		}
+		else if (strcmp(str, "/ping") == 0)
 		{
 			send_message(string("#PONG"), id);
 		}
 		else {
-			if(clients[id-1].mute == false){
+			if(!check_mute(id)){
 				broadcast_message(string(name),id,string(channel));					
 				broadcast_message(id,id, string(channel));	
+
 				broadcast_message(tam_message,id, string(channel));
-
-				shared_print(color(id)+name+" : "+def_col+str, (tam_message == 1));	
 				broadcast_message(string(str),id, string(channel));
-
-				while (--tam_message > 0) {
-					bytes_received=recv(client_socket,str,sizeof(str),0);
-					if(bytes_received<=0){
-						return;
-					}
-					shared_print(str, (tam_message == 1));	
-					broadcast_message(string(str),id, string(channel));
-				}
 			}
+			shared_print(color(id)+name+" : "+def_col+str, (tam_message == 1));	
+
+			while (--tam_message > 0) {
+				bytes_received=recv(client_socket,str,sizeof(str),0);
+				if(bytes_received<=0){
+					return;
+				}
+				shared_print(str, (tam_message == 1));	
+				if (!check_mute(id))
+					broadcast_message(string(str),id, string(channel));
+			}
+			
 		}
 	}	
 }

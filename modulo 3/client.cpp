@@ -164,7 +164,6 @@ void send_message(int client_socket)
 		int tam_message = (full_message.length()%max_len_minus == 0) 
 			? full_message.length()/max_len_minus
 			: full_message.length()/max_len_minus + 1;
-		cout << "tam da msg: " << tam_message << endl;
 
 		// send message count
 		int bytes_sent;
@@ -212,10 +211,18 @@ void recv_message(int client_socket)
 		if(strcmp(name,"#PONG")==0){
 			cout<<"pong!"<<endl;
 		}
-		else if(strcmp(name, "#IP")==0){
-			cout<<"ip"<<endl;
+		else if (strcmp(name, "#NOADM")==0){
+			cout << "permission denied" << endl;
 		}
-		else if(strcmp(name,"#NULL")==0) {
+		else if(strcmp(name, "#IP")==0){
+			recv(client_socket,str,sizeof(str),0);
+			cout<< "IP: " << str <<endl;
+		}
+		else if (strcmp(name, "#ADM") == 0){
+			recv(client_socket,str,sizeof(str),0);
+			cout<< str <<endl;
+		}
+		else if(strcmp(name,"#NULL") == 0) {
 			recv(client_socket,&color_code,sizeof(color_code),0);
 			recv(client_socket,str,sizeof(str),0);
 			cout<<color(color_code)<<str<<endl;
