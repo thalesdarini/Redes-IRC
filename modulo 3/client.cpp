@@ -9,7 +9,8 @@
 #include <thread>
 #include <signal.h>
 #include <mutex>
-#define MAX_LEN 60
+#define MAX_LEN 4096
+#define MAX_LEN_NAME 51
 #define NUM_COLORS 6
 
 using namespace std;
@@ -62,10 +63,13 @@ int main()
 				exit(-1);
 			}
 			
-			cout<<"Enter your name : ";
-			char name[MAX_LEN];
+			cout<< "Enter your name (" << MAX_LEN_NAME << " char max): ";
+			string name_tmp;
+			cin >> name_tmp;
+			char name[MAX_LEN_NAME];
 			memset(name, '\0', sizeof(name));
-			cin >> name;
+			strcpy(name, name_tmp.substr(0, MAX_LEN_NAME-1).c_str());
+
 
 			cout << endl << "Escolha um canal:" << endl;
 			char channel[MAX_LEN];
@@ -198,31 +202,36 @@ void recv_message(int client_socket)
 	{
 		if(exit_flag)
 			return;
-		char name[MAX_LEN], str[MAX_LEN];
+		char code[MAX_LEN], str[MAX_LEN];
 		int color_code;
-		int bytes_received=recv(client_socket,name,sizeof(name),0);
+
+		// lê código da mensagem
+		int bytes_received=recv(client_socket,code,sizeof(code),0);
+
+		// verificação de perda de conxexão
 		if(bytes_received<=0){
 			cout << "\33[2K\rConnection to server was closed" << endl;
 			cout << "Type something to exit" << endl;
 			end_connection(client_socket);
 			return;
 		}
+		
 		eraseTerminalLine();
-		if(strcmp(name,"#PONG")==0){
+		if(strcmp(code,"#PONG")==0){
 			cout<<"pong!"<<endl;
 		}
-		else if (strcmp(name, "#NOADM")==0){
+		else if (strcmp(code, "#NOADM")==0){
 			cout << "permission denied" << endl;
 		}
-		else if(strcmp(name, "#IP")==0){
+		else if(strcmp(code, "#IP")==0){
 			recv(client_socket,str,sizeof(str),0);
 			cout<< "IP: " << str <<endl;
 		}
-		else if (strcmp(name, "#ADM") == 0){
+		else if (strcmp(code, "#ADM") == 0){
 			recv(client_socket,str,sizeof(str),0);
 			cout<< str <<endl;
 		}
-		else if(strcmp(name,"#NULL") == 0) {
+		else if(strcmp(code,"#NULL") == 0) {
 			recv(client_socket,&color_code,sizeof(color_code),0);
 			recv(client_socket,str,sizeof(str),0);
 			cout<<color(color_code)<<str<<endl;
@@ -232,7 +241,7 @@ void recv_message(int client_socket)
 			int tam_message;
 			recv(client_socket,&tam_message,sizeof(tam_message),0);
 
-			cout<<color(color_code)<<name<<" : ";
+			cout<<color(color_code)<<code<<" : ";
 			for (int i = 0; i < tam_message; i++) {
 				recv(client_socket,str,sizeof(str),0);
 				cout<<def_col<<str;

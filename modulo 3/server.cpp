@@ -8,7 +8,8 @@
 #include <unistd.h>
 #include <thread>
 #include <mutex>
-#define MAX_LEN 60
+#define MAX_LEN 4096
+#define MAX_LEN_NAME 51
 #define NUM_COLORS 6
 
 using namespace std;
@@ -409,7 +410,7 @@ bool check_mute(int id) {
 
 void handle_client(int client_socket, int id)
 {
-	char name[MAX_LEN],str[MAX_LEN], channel[MAX_LEN];
+	char name[MAX_LEN_NAME],str[MAX_LEN], channel[MAX_LEN];
 	recv(client_socket,name,sizeof(name),0);
 	set_name(id,name);	
 	recv(client_socket,channel,sizeof(channel),0);
@@ -417,7 +418,7 @@ void handle_client(int client_socket, int id)
 
 
 	// Display welcome message
-	string welcome_message=string(name)+string(" has joined com id ") + to_string(id);
+	string welcome_message = string(name) + string(" has joined");
 	broadcast_message(string("#NULL"),id, string(channel));	
 	broadcast_message(id,id, string(channel));								
 	broadcast_message(welcome_message,id, string(channel));	

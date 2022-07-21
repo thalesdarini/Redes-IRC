@@ -6,6 +6,8 @@
         "iostream": "cpp",
         "array": "cpp",
         "scoped_allocator": "cpp",
-        "string_view": "cpp"
+        "string_view": "cpp",
+        "typeindex": "cpp",
+        "typeinfo": "cpp"
     }
 }
